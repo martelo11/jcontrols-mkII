@@ -27,28 +27,41 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+/**
+ * A {@link Try} offers a functional way of error handling other than a standard try-catch block.
+ * By convention the {@link Try} is a special container that represents a computation that may either result in an exception or complete successfully.
+ *
+ * @param <A>
+ */
 public sealed interface Try<A> permits Try.Failure, Try.Success {
+
   /**
-   * @param <A>
+   * Constructs a {@link Try} from a success value.
+   *
+   * @param <A> The success type of the constructed Try
    * @param value
-   * @return
+   * @return {@link Success} instance
    */
   static <A> Try<A> success(A value) {
     return new Success<>(value);
   }
 
   /**
-   * @param <A>
-   * @param cause
-   * @return
+   * Constructs a {@link Try} from a {@link Throwable}.
+   *
+   * @param <A> The success type of the constructed Try
+   * @param cause The throwable
+   * @return {@link Failure} instance
    */
   static <A> Try<A> failure(Throwable cause) {
     return new Failure<>(cause);
   }
 
   /**
-   * @param runnable
-   * @return
+   * Constructs a {@link Try} from a {@link CheckedRunnable} by invoking the {@link CheckedRunnable#run()} method.
+   *
+   * @param runnable The runnable
+   * @return A {@link Success} if the runnable did not throw an Exception of type {@link Throwable}, a {@link Failure} otherwise.
    */
   static Try<Void> ofRunnable(CheckedRunnable runnable) {
     Objects.requireNonNull(runnable);
@@ -60,6 +73,13 @@ public sealed interface Try<A> permits Try.Failure, Try.Success {
     }
   }
 
+  /**
+   * Constructs a {@link Try} from the given function.
+   *
+   * @param <A> The success type of the constructed Try
+   * @param work The function
+   * @return A {@link Success} if the function did not throw an Exception of type {@link Throwable}, a {@link Failure} otherwise.
+   */
   static <A> Try<A> of(Function0<A> work) {
     Objects.requireNonNull(work);
     try {
@@ -79,65 +99,80 @@ public sealed interface Try<A> permits Try.Failure, Try.Success {
   }
 
   /**
-   * @param other
-   * @return
+   * @param other The other Try
+   * @return Other {@link Try}, if this {@link Try} contains a failure value.
    */
   Try<A> or(Try<A> other);
 
   /**
-   * @param other
-   * @return
+   * @param other The other Try supplier
+   * @return Other {@link Supplier}, if this {@link Try} contains a failure value.
    */
   Try<A> or(Supplier<Try<A>> other);
 
   /**
-   * @param other
-   * @return
+   * @param other The other object
+   * @return Other object, if this {@link Try} contains a failure value.
    */
   A orElse(A other);
 
   /**
-   * @param other
-   * @return
+   * @param other The other supplier
+   * @return Other supplier, if this {@link Try} contains a failure value.
    */
   A orElse(Supplier<A> other);
 
   /**
-   * @return
+   * @return true if this is a {@link Failure} value, false otherwise
    */
   boolean isFailure();
 
   /**
-   * @return
+   * @return true if this is a {@link Success} value, false otherwise
    */
   boolean isSuccess();
 
   /**
-   * @return
+   * Converts this {@link Try} to an {@link Either}.
+   *
+   * @return An {@link Either} containing the success value or {@link Throwable}
    */
   Either<Throwable, A> toEither();
 
   /**
-   * @return
+   * Converts this {@link Try} to an {@link Optional}.
+   *
+   * @return An {@link Optional} containing the success value if this {@link Try} has a success value, {@link Optional#empty()} otherwise
    */
   Optional<A> toOptional();
 
   /**
-   * @param <B>
-   * @param f
-   * @return
+   * Execute the given function only when {@link Try} will be of {@link Success}.
+   *
+   * @param <B> The success type of the constructed Try
+   * @param f The function to apply
+   * @return function result
    */
   default <B> Try<B> map(Function<? super A, ? extends B> f) {
     return this.flatMap(x -> success(f.apply(x)));
   }
 
   /**
-   * @param <B>
-   * @param f
-   * @return
+   * Execute the given function only when {@link Try} will be of {@link Success}.
+   *
+   * @param <B> The success type of the constructed Try
+   * @param f The function to apply
+   * @return unwrapped function result
    */
   <B> Try<B> flatMap(Function<? super A, ? extends Try<B>> f);
 
+  /**
+   * Returns a {@link Try} that match the given predicate.
+   *
+   * @param predicate A predicate to apply to determine if it should be included
+   * @param throwable A supplier for if the predicate does not match
+   * @return A {@link Try} containing the success, the result of the supplier otherwise
+   */
   Try<A> filter(Predicate<A> predicate, Supplier<? extends Throwable> throwable);
 
   record Success<T>(T value) implements Try<T> {
